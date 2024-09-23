@@ -1,4 +1,5 @@
 ﻿#jacobezer
+#for active directory users refer to createADuser.ps1 
 
 #password validation
 function Validate-Password {
