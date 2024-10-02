@@ -1,10 +1,5 @@
 #Jacobezer
 Import-Module ActiveDirectory
-#specify domain name on line 61 (make sure it is correct it does not validate)
-
-
-
-
 
 #password validation(change values based on custom policies or preference)
 #uncomment specialchar if you want a special character required and add "-and $specialchar" to the if statement
@@ -45,7 +40,7 @@ function Get-SecurePassword {
                 Write-Host "Password Valid" -ForegroundColor Green
                 return $password
             } else {
-                Write-Host "Password Rejected" -ForegroundColor Red
+                Write-Host "Password Rejected Not Complex Enough" -ForegroundColor Red
             }
         } else {
             Write-Host "Passwords Do Not Match" -ForegroundColor Red
@@ -53,25 +48,57 @@ function Get-SecurePassword {
     } while ($passwordPlain -ne $confirmPasswordPlain -or -not (Validate-Password -Password $password))
 }
 
-#script
-$username = Read-Host -Prompt "Enter Username"
-$fullName = Read-Host -Prompt "Enter Full Name"
-$description = Read-Host -Prompt "Description"
-$password = Get-SecurePassword -prompt "Enter A Secure Password"
-$UPname = "$username@domain" #change based on domain name and make sure it is correct
+function Confirm-user {
+    param (
+        [string]$username,
+        [string]$fullName,
+        [string]$description,
+        [string]$UPname
+    )
 
-try {
-    #create user (add optional parameters if needed)
-    New-ADUser -SamAccountName $username `
-               -Name $fullName `
-               -Description $description `
-               -AccountPassword $password `
-               -UserPrincipalName $UPname `
-               -Enabled $true `
-               -ChangePasswordAtLogon $true #change to false if not needed
+    Write-Host "Confirm user '$username' with the following information:" -ForegroundColor Yellow
+    Write-Host "Username: $username" -ForegroundColor Yellow
+    Write-Host "Full Name: $fullName" -ForegroundColor Yellow
+    Write-Host "Description: $description" -ForegroundColor Yellow
+    Write-Host "UPN/Domain: $UPname" -ForegroundColor Yellow
 
-
-    Write-Host "User $username Created" -ForegroundColor Green
-} catch {
-    Write-Host "Error Creating User: $_" -ForegroundColor Red
+    $confirmation = Read-Host -Prompt "Do you want to proceed? (Yes/No)"
+    
+    if ($confirmation -eq 'Yes' -or $confirmation -eq 'Y') {
+        return $true
+    } else {
+        return $false
+    }
 }
+
+do {
+    #script
+    #for multiple domains you can uncomment both lines below and comment $UPname to specify domain for each user
+    $username = Read-Host -Prompt "Enter Username"
+    $fullName = Read-Host -Prompt "Enter Full Name"
+    $description = Read-Host -Prompt "Description"
+    $password = Get-SecurePassword -prompt "Enter A Secure Password"
+    #$domain = Read-Host -Prompt "Enter Domain Name"
+    #$UPname = "$username@$Domain"
+    $UPname = "$username@insert-domain" #change domain name
+    $confirmed = Confirm-user -username $username -fullName $fullName -description $description -UPname $UPname
+
+    if ($confirmed) {
+        try {
+            #create user (add optional parameters if needed)
+            New-ADUser -SamAccountName $username `
+                       -Name $fullName `
+                       -Description $description `
+                       -AccountPassword $password `
+                       -UserPrincipalName $UPname `
+                       -Enabled $true `
+                       -ChangePasswordAtLogon $true #change to false if not needed
+
+            Write-Host "User $username Created" -ForegroundColor Green
+        } catch {
+            Write-Host "Error Creating User: $_" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "User Cancelled" -ForegroundColor Red
+    }
+ } while (-not $confirmed)
