@@ -1,5 +1,5 @@
 ﻿#jacobezer
-#for active directory users refer to createADuser.ps1 
+#creates local users
 
 #password validation
 function Validate-Password {
@@ -46,19 +46,47 @@ function Get-SecurePassword {
     } while ($passwordPlain -ne $confirmPasswordPlain -or -not (Validate-Password -Password $password))
 }
 
-#script
-$username = Read-Host -Prompt "Enter Username"
-$fullName = Read-Host -Prompt "Enter Full Name"
-$description = Read-Host -Prompt "Description"
-$password = Get-SecurePassword -prompt "Enter A Secure Password"
+function Confirm-user {
+    param (
+        [string]$username,
+        [string]$fullName,
+        [string]$description
+    ) 
 
-try {
-    $user = New-LocalUser -Name $username `
+    Write-Host "Confirm user '$username' with the following information"
+    Write-Host "Username: $username" -ForegroundColor Yellow
+    Write-Host "Full Name: $fullname" -ForegroundColor Yellow
+    Write-Host "Description: $description" -ForegroundColor Yellow
+
+    $confirmation = Read-Host -Prompt "Do you want to proceed? (Yes/No)"
+
+    if ($confirmation -eq 'Yes' -or $confirmation -eq 'Y') {
+        return $true
+    } else {
+        return $false
+    }
+}
+
+do {
+    #script
+    $username = Read-Host -Prompt "Enter Username"
+    $fullName = Read-Host -Prompt "Enter Full Name"
+    $description = Read-Host -Prompt "Description"
+    $password = Get-SecurePassword -prompt "Enter A Secure Password"
+    $confirmed = Confirm-user -username $username -fullName $fullName -description $description
+    
+    if ($confirmed ) {
+        try {
+            New-LocalUser -Name $username `
                           -FullName $fullName `
                           -Description $description `
                           -Password $password `
     
-    Write-Host "User $username Created" -ForegroundColor Green
-} catch {
-    Write-Host "Error Creating User: $_" -ForegroundColor Red
-}
+            Write-Host "User $username Created" -ForegroundColor Green
+        } catch {
+            Write-Host "Error Creating User: $_" -ForegroundColor Red
+        }
+    } else {
+        Write-Host "User Cancelled" -ForegroundColor Red
+    }
+} while (-not $confirmed)
